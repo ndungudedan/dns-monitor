@@ -1,0 +1,10 @@
+.git
+.venv
+__pycache__
+*.pyc
+*.pyo
+*.db
+*.db-wal
+*.db-shm
+geoip/
+.env

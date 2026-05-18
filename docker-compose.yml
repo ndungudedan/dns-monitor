@@ -1,0 +1,26 @@
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - data:/data
+      - ./geoip:/data/geoip:ro   # optional: place GeoLite2-City.mmdb / GeoLite2-ASN.mmdb here
+    environment:
+      - GEOIP_DB_DIR=/data/geoip
+    restart: unless-stopped
+    depends_on:
+      - monitor
+
+  monitor:
+    build: .
+    command: python main.py --db /data/monitor.db watch --interval 600
+    volumes:
+      - data:/data
+      - ./geoip:/data/geoip:ro
+    environment:
+      - GEOIP_DB_DIR=/data/geoip
+    restart: unless-stopped
+
+volumes:
+  data:
