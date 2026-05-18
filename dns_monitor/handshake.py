@@ -160,39 +160,83 @@ def _parse_version_payload(payload: bytes) -> PeerInfo:
 
 
 # ---------------------------------------------------------------------------
+# SOCKS5 helper (for Tor / I2P)
+# ---------------------------------------------------------------------------
+
+def _socks5_connect(proxy_host: str, proxy_port: int, dest_host: str, dest_port: int, timeout: float) -> socket.socket:
+    """Open a raw SOCKS5 tunnel to dest_host:dest_port via the proxy."""
+    sock = socket.create_connection((proxy_host, proxy_port), timeout=timeout)
+    sock.settimeout(timeout)
+
+    # Greeting — no auth
+    sock.sendall(b"\x05\x01\x00")
+    resp = sock.recv(2)
+    if resp != b"\x05\x00":
+        sock.close()
+        raise ConnectionError(f"SOCKS5 auth negotiation failed: {resp!r}")
+
+    # Connect request — DOMAINNAME type
+    host_b = dest_host.encode()
+    request = (
+        b"\x05\x01\x00\x03"
+        + bytes([len(host_b)])
+        + host_b
+        + struct.pack(">H", dest_port)
+    )
+    sock.sendall(request)
+
+    resp = sock.recv(10)
+    if len(resp) < 2 or resp[1] != 0x00:
+        sock.close()
+        raise ConnectionError(f"SOCKS5 connect failed: {resp!r}")
+
+    return sock
+
+
+# ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
+
+# Default proxy addresses — override via environment or CLI if needed
+TOR_PROXY  = ("127.0.0.1", 9050)
+I2P_PROXY  = ("127.0.0.1", 4447)
+
 
 def handshake(
     ip: str,
     port: int,
     network: str,
     timeout: float = 5.0,
+    tor_proxy: tuple[str, int] | None = TOR_PROXY,
+    i2p_proxy: tuple[str, int] | None = I2P_PROXY,
 ) -> Optional[PeerInfo]:
     """
-    Opens a TCP connection, performs the Bitcoin version handshake,
-    and returns PeerInfo. Returns None on any failure.
+    Opens a TCP connection (direct or via SOCKS5 for Tor/.onion and I2P/.i2p),
+    performs the Bitcoin P2P version handshake, and returns PeerInfo.
+    Returns None on any failure.
     """
     magic = NETWORK_MAGIC.get(network, NETWORK_MAGIC["mainnet"])
 
     try:
-        with socket.create_connection((ip, port), timeout=timeout) as sock:
+        if ip.endswith(".onion") and tor_proxy:
+            sock = _socks5_connect(*tor_proxy, ip, port, timeout)
+        elif (ip.endswith(".i2p") or ip.endswith(".b32.i2p")) and i2p_proxy:
+            sock = _socks5_connect(*i2p_proxy, ip, port, timeout)
+        else:
+            sock = socket.create_connection((ip, port), timeout=timeout)
             sock.settimeout(timeout)
 
-            # Send our version
+        with sock:
             version_payload = _make_version_payload(ip, port)
             sock.sendall(_frame("version", version_payload, magic))
 
-            # Read messages until we get the peer's version
             peer_info: Optional[PeerInfo] = None
             for _ in range(5):
                 command, payload = _read_message(sock)
                 if command == "version":
                     peer_info = _parse_version_payload(payload)
-                    # Send verack
                     sock.sendall(_frame("verack", b"", magic))
                     break
-                # ignore ping/other preamble messages
 
             return peer_info
 

@@ -5,6 +5,7 @@ from .seeds import SEEDS, DEFAULT_PORT
 from .resolver import resolve_all
 from .prober import probe_seed_results
 from .storage import DB
+from .geo import enrich_batch
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +23,13 @@ def run_cycle(db: DB, networks: list[str] | None = None):
     logger.info("=== Probing nodes ===")
     node_results = probe_seed_results(seed_results, DEFAULT_PORT)
     db.save_node_results(node_results)
+
+    # GeoIP — only enrich IPs we haven't seen before
+    all_ips = list({r.ip for r in node_results})
+    geo_map = enrich_batch(all_ips)
+    if geo_map:
+        db.save_geo_results(geo_map)
+        logger.info("GeoIP: enriched %d/%d IPs", len(geo_map), len(all_ips))
 
     summary = db.latest_summary()
     reachable = summary["reachable"]

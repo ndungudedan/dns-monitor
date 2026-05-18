@@ -92,9 +92,60 @@ def api_seed_polls(seed_name: str, limit: int = Query(default=50, ge=1, le=500))
     return get_db().seed_poll_log(seed_name, limit)
 
 
+@app.get("/api/seeds/{seed_name:path}/stale")
+def api_seed_stale(seed_name: str, hours: int = Query(default=168, ge=1, le=720)):
+    all_seeds = [s for seeds in SEEDS.values() for s in seeds]
+    if seed_name not in all_seeds:
+        raise HTTPException(status_code=404, detail="Seed not found")
+    return get_db().seed_stale_nodes(seed_name, hours)
+
+
 @app.get("/api/user-agents")
 def api_user_agents(hours: int = Query(default=24, ge=1, le=168)):
     return get_db().user_agent_history(hours)
+
+
+@app.get("/api/version-history")
+def api_version_history(hours: int = Query(default=168, ge=1, le=720)):
+    return get_db().version_history(hours)
+
+
+@app.get("/api/network-types")
+def api_network_types(hours: int = Query(default=24, ge=1, le=168)):
+    return get_db().network_type_breakdown(hours)
+
+
+@app.get("/api/network-types/history")
+def api_network_types_history(hours: int = Query(default=168, ge=1, le=720)):
+    return get_db().network_type_history(hours)
+
+
+@app.get("/api/services")
+def api_services(hours: int = Query(default=24, ge=1, le=168)):
+    return get_db().services_breakdown(hours)
+
+
+@app.get("/api/long-term-nodes")
+def api_long_term_nodes(
+    min_pct: float = Query(default=80.0, ge=0, le=100),
+    hours: int = Query(default=168, ge=1, le=720),
+):
+    return get_db().long_term_nodes(min_pct, hours)
+
+
+@app.get("/api/deltas")
+def api_deltas():
+    return get_db().node_count_deltas()
+
+
+@app.get("/api/uniqueness")
+def api_uniqueness(hours: int = Query(default=24, ge=1, le=168)):
+    return get_db().seed_uniqueness(SEEDS, hours)
+
+
+@app.get("/api/geo")
+def api_geo(hours: int = Query(default=24, ge=1, le=168)):
+    return get_db().geo_summary(hours)
 
 
 @app.post("/api/probe")

@@ -7,119 +7,82 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
-      --bg: #0d1117;
-      --surface: #161b22;
-      --surface2: #1c2128;
-      --border: #30363d;
-      --text: #e6edf3;
-      --muted: #8b949e;
-      --green: #3fb950;
-      --red: #f85149;
-      --yellow: #d29922;
-      --orange: #f0883e;
-      --blue: #58a6ff;
-      --accent: #f7931a;
+      --bg: #0d1117; --surface: #161b22; --surface2: #1c2128;
+      --border: #30363d; --text: #e6edf3; --muted: #8b949e;
+      --green: #3fb950; --red: #f85149; --yellow: #d29922;
+      --orange: #f0883e; --blue: #58a6ff; --accent: #f7931a;
+      --purple: #bc8cff;
     }
-
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
 
+    /* Header */
     header { border-bottom: 1px solid var(--border); padding: 1rem 2rem; display: flex; align-items: center; gap: .75rem; }
     header svg { color: var(--accent); flex-shrink: 0; }
     header h1 { font-size: 1.1rem; font-weight: 600; }
     .refresh-info { margin-left: auto; font-size: .75rem; color: var(--muted); }
     .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--green); margin-right: 4px; animation: pulse 2s infinite; }
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
-
-    .probe-btn {
-      display: flex; align-items: center; gap: .4rem;
-      background: rgba(247,147,26,.12); color: var(--accent);
-      border: 1px solid rgba(247,147,26,.3); border-radius: 6px;
-      padding: .35rem .85rem; font-size: .8rem; font-weight: 600;
-      cursor: pointer; transition: background .15s, opacity .15s;
-      white-space: nowrap;
-    }
+    .probe-btn { display: flex; align-items: center; gap: .4rem; background: rgba(247,147,26,.12); color: var(--accent); border: 1px solid rgba(247,147,26,.3); border-radius: 6px; padding: .35rem .85rem; font-size: .8rem; font-weight: 600; cursor: pointer; transition: background .15s; white-space: nowrap; }
     .probe-btn:hover:not(:disabled) { background: rgba(247,147,26,.22); }
     .probe-btn:disabled { opacity: .55; cursor: not-allowed; }
-    .probe-btn .spinner {
-      display: none; width: 12px; height: 12px;
-      border: 2px solid rgba(247,147,26,.3);
-      border-top-color: var(--accent);
-      border-radius: 50%; animation: spin .7s linear infinite;
-    }
+    .probe-btn .spinner { display: none; width: 12px; height: 12px; border: 2px solid rgba(247,147,26,.3); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
     .probe-btn.running .spinner { display: inline-block; }
     .probe-btn.running .btn-icon { display: none; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
     main { padding: 1.5rem 2rem; max-width: 1400px; margin: 0 auto; }
 
+    /* Stat cards */
     .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
     .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem 1rem; }
-    .stat-card .label { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: .4rem; }
+    .stat-card .label { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: .4rem; display: flex; align-items: center; }
     .stat-card .value { font-size: 2rem; font-weight: 700; line-height: 1; }
-    .stat-card .value.green { color: var(--green); }
-    .stat-card .value.red   { color: var(--red); }
-    .stat-card .value.blue  { color: var(--blue); }
-    .stat-card .value.orange{ color: var(--orange); }
+    .stat-card .value.green { color: var(--green); } .stat-card .value.red { color: var(--red); }
+    .stat-card .value.blue { color: var(--blue); } .stat-card .value.orange { color: var(--orange); }
     .stat-card .sub { font-size: .75rem; color: var(--muted); margin-top: .3rem; }
+    .delta { font-size: .72rem; font-weight: 600; margin-left: .3rem; }
+    .delta.up { color: var(--green); } .delta.down { color: var(--red); } .delta.flat { color: var(--muted); }
 
-    .charts-row { display: grid; grid-template-columns: 2fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
-    @media (max-width: 900px) { .charts-row { grid-template-columns: 1fr; } }
-
-    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; }
+    /* Cards */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; margin-bottom: 1rem; }
     .card h2 { font-size: .85rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 1rem; }
     .chart-wrap { position: relative; height: 220px; }
+    .chart-wrap.tall { height: 280px; }
+    .chart-wrap.sm { height: 160px; }
 
-    .seeds-card { margin-bottom: 1.5rem; }
+    /* Grid layouts */
+    .two-col { display: grid; grid-template-columns: 2fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+    .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+    @media (max-width: 900px) { .two-col, .three-col { grid-template-columns: 1fr; } }
 
+    /* Tables */
     table { width: 100%; border-collapse: collapse; font-size: .85rem; }
     th { text-align: left; font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; padding: 0 .75rem .75rem; border-bottom: 1px solid var(--border); white-space: nowrap; }
     td { padding: .55rem .75rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+
+    /* Seeds table */
     tr.seed-row { cursor: pointer; }
     tr.seed-row:hover td { background: rgba(255,255,255,.02); }
     tr.seed-row.expanded td { background: rgba(88,166,255,.04); }
-    tr.detail-row td { padding: 0; border-bottom: 1px solid var(--border); }
+    tr.detail-row td { padding: 0; }
     tr.detail-row.hidden { display: none; }
-
-    .detail-panel { background: var(--surface2); border-top: 1px solid var(--border); }
-
-    /* Tabs */
-    .tab-bar { display: flex; gap: 0; border-bottom: 1px solid var(--border); padding: 0 1.25rem; }
-    .tab-btn {
-      padding: .6rem 1rem; font-size: .8rem; font-weight: 500; cursor: pointer;
-      border: none; background: none; color: var(--muted);
-      border-bottom: 2px solid transparent; margin-bottom: -1px;
-      transition: color .15s;
-    }
-    .tab-btn:hover { color: var(--text); }
-    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
-
-    .tab-content { padding: 1rem 1.25rem; }
-    .tab-pane { display: none; }
-    .tab-pane.active { display: block; }
-
-    .detail-chart-wrap { position: relative; height: 180px; margin-bottom: .5rem; }
-
-    /* Nodes table */
-    .nodes-table { width: 100%; border-collapse: collapse; font-size: .8rem; }
-    .nodes-table th { font-size: .68rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; padding: 0 .5rem .5rem; border-bottom: 1px solid var(--border); white-space: nowrap; text-align: left; }
-    .nodes-table td { padding: .4rem .5rem; border-bottom: 1px solid rgba(48,54,61,.6); font-family: monospace; white-space: nowrap; }
-    .nodes-table tr:last-child td { border-bottom: none; }
-    .nodes-table tr:hover td { background: rgba(255,255,255,.02); }
-
-    /* Poll log table */
-    .poll-table { width: 100%; border-collapse: collapse; font-size: .8rem; }
-    .poll-table th { font-size: .68rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; padding: 0 .5rem .5rem; border-bottom: 1px solid var(--border); text-align: left; }
-    .poll-table td { padding: .4rem .5rem; border-bottom: 1px solid rgba(48,54,61,.6); vertical-align: top; }
-    .poll-table tr:last-child td { border-bottom: none; }
-    .ip-list { color: var(--muted); font-family: monospace; font-size: .72rem; line-height: 1.6; }
-
-    .empty-msg { color: var(--muted); font-size: .8rem; padding: .75rem 0; }
-
     .chevron { display: inline-block; transition: transform .2s; font-size: .7rem; color: var(--muted); margin-right: .25rem; }
     tr.expanded .chevron { transform: rotate(90deg); }
 
+    /* Detail panel tabs */
+    .detail-panel { background: var(--surface2); border-top: 1px solid var(--border); }
+    .tab-bar { display: flex; border-bottom: 1px solid var(--border); padding: 0 1.25rem; }
+    .tab-btn { padding: .6rem 1rem; font-size: .8rem; font-weight: 500; cursor: pointer; border: none; background: none; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color .15s; }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .tab-content { padding: 1rem 1.25rem; }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+    .detail-chart-wrap { position: relative; height: 180px; margin-bottom: .5rem; }
+
+    /* Badges */
     .badge { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: .7rem; font-weight: 600; }
     .badge.ok    { background: rgba(63,185,80,.15); color: var(--green); }
     .badge.warn  { background: rgba(210,153,34,.15); color: var(--yellow); }
@@ -128,46 +91,43 @@
     .badge.net   { background: rgba(88,166,255,.1);  color: var(--blue); font-size: .65rem; }
     .badge.danger{ background: rgba(248,81,73,.2);   color: var(--red); font-size: .7rem; }
 
+    /* Progress bar */
     .pct-bar { display: flex; align-items: center; gap: .5rem; }
     .pct-bar-track { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; min-width: 60px; }
-    .pct-bar-fill { height: 100%; border-radius: 3px; background: var(--green); transition: width .4s ease; }
-    .pct-bar-fill.warn  { background: var(--yellow); }
-    .pct-bar-fill.error { background: var(--red); }
+    .pct-bar-fill { height: 100%; border-radius: 3px; background: var(--green); transition: width .4s; }
+    .pct-bar-fill.warn { background: var(--yellow); } .pct-bar-fill.error { background: var(--red); }
 
+    /* Health / info */
     .health-ring { display: inline-flex; align-items: center; gap: .35rem; font-size: .82rem; font-weight: 600; }
+    .info-wrap { position: relative; display: inline-flex; align-items: center; }
+    .info-icon { display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; border-radius: 50%; border: 1px solid var(--muted); color: var(--muted); font-size: .6rem; font-weight: 700; cursor: default; margin-left: .35rem; flex-shrink: 0; }
+    .info-icon:hover { border-color: var(--blue); color: var(--blue); }
+    .info-tooltip { display: none; position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); background: #2d333b; border: 1px solid var(--border); color: var(--text); font-size: .75rem; line-height: 1.5; padding: .5rem .75rem; border-radius: 6px; width: 220px; z-index: 100; box-shadow: 0 4px 16px rgba(0,0,0,.4); pointer-events: none; }
+    .info-tooltip::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border: 5px solid transparent; border-top-color: #2d333b; }
+    .info-wrap:hover .info-tooltip { display: block; }
+
+    /* Inline tables for detail panels */
+    .nodes-table, .poll-table, .stale-table, .lt-table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+    .nodes-table th, .poll-table th, .stale-table th, .lt-table th { font-size: .68rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; padding: 0 .5rem .5rem; border-bottom: 1px solid var(--border); text-align: left; }
+    .nodes-table td, .poll-table td, .stale-table td, .lt-table td { padding: .4rem .5rem; border-bottom: 1px solid rgba(48,54,61,.6); vertical-align: top; }
+    .nodes-table tr:last-child td, .poll-table tr:last-child td, .stale-table tr:last-child td, .lt-table tr:last-child td { border-bottom: none; }
+    .nodes-table td, .nodes-table th { font-family: monospace; }
+    .ip-list { color: var(--muted); font-family: monospace; font-size: .72rem; line-height: 1.6; }
+    .empty-msg { color: var(--muted); font-size: .8rem; padding: .75rem 0; }
+
+    /* Services bar */
+    .service-bar { display: flex; flex-direction: column; gap: .5rem; }
+    .service-row { display: flex; align-items: center; gap: .75rem; font-size: .82rem; }
+    .service-name { width: 160px; flex-shrink: 0; color: var(--muted); font-family: monospace; font-size: .78rem; }
+    .service-track { flex: 1; height: 10px; background: var(--border); border-radius: 5px; overflow: hidden; }
+    .service-fill { height: 100%; border-radius: 5px; background: var(--blue); }
+    .service-pct { width: 3.5rem; text-align: right; font-size: .78rem; color: var(--muted); }
+
+    /* Network type colours */
+    .nt-ipv4 { color: var(--blue); } .nt-ipv6 { color: var(--purple); }
+    .nt-tor  { color: var(--orange); } .nt-i2p { color: var(--green); }
 
     #last-updated { font-size: .72rem; color: var(--muted); margin-top: 1rem; text-align: right; }
-
-    /* Info tooltip */
-    .info-wrap { position: relative; display: inline-flex; align-items: center; }
-    .info-icon {
-      display: inline-flex; align-items: center; justify-content: center;
-      width: 14px; height: 14px; border-radius: 50%;
-      border: 1px solid var(--muted); color: var(--muted);
-      font-size: .6rem; font-weight: 700; cursor: default;
-      margin-left: .35rem; flex-shrink: 0; line-height: 1;
-      user-select: none;
-    }
-    .info-icon:hover { border-color: var(--blue); color: var(--blue); }
-    .info-tooltip {
-      display: none;
-      position: absolute;
-      bottom: calc(100% + 6px);
-      left: 50%; transform: translateX(-50%);
-      background: #2d333b; border: 1px solid var(--border);
-      color: var(--text); font-size: .75rem; line-height: 1.5;
-      padding: .5rem .75rem; border-radius: 6px;
-      width: 220px; z-index: 100;
-      box-shadow: 0 4px 16px rgba(0,0,0,.4);
-      pointer-events: none;
-    }
-    .info-tooltip::after {
-      content: '';
-      position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
-      border: 5px solid transparent;
-      border-top-color: #2d333b;
-    }
-    .info-wrap:hover .info-tooltip { display: block; }
   </style>
 </head>
 <body>
@@ -178,86 +138,82 @@
   <h1>Bitcoin DNS Seed Monitor</h1>
   <span class="refresh-info"><span class="dot"></span>Live · refreshes every 60s</span>
   <button class="probe-btn" id="probe-btn" onclick="runProbe()">
-    <span class="spinner"></span>
-    <span class="btn-icon">⚡</span>
-    <span class="btn-label">Run probe</span>
+    <span class="spinner"></span><span class="btn-icon">⚡</span><span class="btn-label">Run probe</span>
   </button>
 </header>
 
 <main>
+  <!-- Stat cards -->
   <div class="stat-grid">
     <div class="stat-card">
-      <div class="label">
-        Reachable Nodes
-        <span class="info-wrap">
-          <span class="info-icon">i</span>
-          <span class="info-tooltip">Individual Bitcoin node IPs (returned by DNS seeds) where a full P2P handshake succeeded — TCP connection established and a valid version message was exchanged. Counted over the last hour.</span>
-        </span>
-      </div>
+      <div class="label">Reachable Nodes<span class="info-wrap"><span class="info-icon">i</span><span class="info-tooltip">Individual Bitcoin node IPs where a full P2P handshake succeeded in the last hour.</span></span></div>
       <div class="value green" id="s-reachable">—</div>
       <div class="sub" id="s-reachable-pct"></div>
     </div>
     <div class="stat-card">
-      <div class="label">
-        Unreachable Nodes
-        <span class="info-wrap">
-          <span class="info-icon">i</span>
-          <span class="info-tooltip">Individual Bitcoin node IPs where the connection attempt failed — TCP timed out, was refused, or the P2P handshake did not complete. Counted over the last hour.</span>
-        </span>
-      </div>
+      <div class="label">Unreachable Nodes<span class="info-wrap"><span class="info-icon">i</span><span class="info-tooltip">Node IPs where TCP timed out, was refused, or the P2P handshake failed. Counted over the last hour.</span></span></div>
       <div class="value red" id="s-unreachable">—</div>
     </div>
     <div class="stat-card">
-      <div class="label">
-        Nodes Probed
-        <span class="info-wrap">
-          <span class="info-icon">i</span>
-          <span class="info-tooltip">Total unique node IPs collected from all DNS seeds and actively probed this hour. Each seed returns ~20–25 IPs per query — this is the sum across all seeds and networks.</span>
-        </span>
-      </div>
+      <div class="label">Nodes Probed<span class="info-wrap"><span class="info-icon">i</span><span class="info-tooltip">Total unique IPs collected from all DNS seeds and actively probed this hour.</span></span></div>
       <div class="value blue" id="s-total">—</div>
       <div class="sub">last hour</div>
     </div>
     <div class="stat-card">
-      <div class="label">
-        DNS Seeds Up
-        <span class="info-wrap">
-          <span class="info-icon">i</span>
-          <span class="info-tooltip">How many of the 17 configured DNS seed hostnames resolved successfully and returned node IPs in the last poll. A seed is "down" if DNS resolution fails or times out.</span>
-        </span>
-      </div>
+      <div class="label">Long-term Nodes<span class="info-wrap"><span class="info-icon">i</span><span class="info-tooltip">Nodes reachable in ≥80% of probe cycles over the last 7 days — stable backbone of the network.</span></span></div>
+      <div class="value" style="color:var(--purple)" id="s-longterm">—</div>
+      <div class="sub">≥80% uptime (7d)</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">DNS Seeds Up<span class="info-wrap"><span class="info-icon">i</span><span class="info-tooltip">How many of the 17 configured DNS seed hostnames resolved successfully in the last poll.</span></span></div>
       <div class="value orange" id="s-seeds-ok">—</div>
       <div class="sub" id="s-seeds-total"></div>
     </div>
   </div>
 
-  <div class="charts-row">
+  <!-- Reachability + UA charts -->
+  <div class="two-col">
     <div class="card">
       <h2>Reachability over time (24h)</h2>
       <div class="chart-wrap"><canvas id="history-chart"></canvas></div>
     </div>
     <div class="card">
-      <h2>Node versions</h2>
+      <h2>Node versions (snapshot)</h2>
       <div class="chart-wrap"><canvas id="ua-chart"></canvas></div>
     </div>
   </div>
 
-  <div class="card seeds-card">
+  <!-- Network type + Services + Version history -->
+  <div class="three-col">
+    <div class="card">
+      <h2>Network types</h2>
+      <div class="chart-wrap sm"><canvas id="nettype-chart"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>Node capabilities</h2>
+      <div id="services-bars" class="service-bar" style="padding-top:.25rem"></div>
+    </div>
+    <div class="card">
+      <h2>Version adoption (7d)</h2>
+      <div class="chart-wrap sm"><canvas id="version-history-chart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Long-term nodes -->
+  <div class="card">
+    <h2>Long-term nodes — reachable in ≥80% of cycles (7 days)</h2>
+    <div id="lt-nodes-content"><p class="empty-msg">Loading…</p></div>
+  </div>
+
+  <!-- Seeds table -->
+  <div class="card" style="margin-bottom:1rem">
     <h2>Seed health — click a row to see history</h2>
     <table>
-      <thead>
-        <tr>
-          <th></th>
-          <th>Seed</th>
-          <th>Network</th>
-          <th>Status</th>
-          <th>Health</th>
-          <th>Records</th>
-          <th>Reachable</th>
-          <th>Avg DNS (ms)</th>
-          <th>Last poll</th>
-        </tr>
-      </thead>
+      <thead><tr>
+        <th></th><th>Seed</th><th>Network</th><th>Status</th>
+        <th>Health</th><th>Records</th><th>Reachable</th>
+        <th>Uniqueness</th><th>Avg DNS (ms)</th><th>Last poll</th>
+      </tr></thead>
       <tbody id="seeds-tbody"></tbody>
     </table>
   </div>
@@ -266,397 +222,325 @@
 </main>
 
 <script>
-  let historyChart, uaChart;
+  // ── chart instances ───────────────────────────────────────────────────────
+  let historyChart, uaChart, nettypeChart, versionHistChart;
   const detailCharts = {};
-
+  const loadedTabs   = {};
   Chart.defaults.color = '#8b949e';
 
-  // ── helpers ──────────────────────────────────────────────────────────────
+  const NT_COLORS = { ipv4: '#58a6ff', ipv6: '#bc8cff', tor: '#f0883e', i2p: '#3fb950', unknown: '#8b949e' };
+  const UA_COLORS = ['#f7931a','#3fb950','#58a6ff','#f85149','#d29922','#bc8cff','#f0883e','#39d353','#79c0ff','#ff7b72'];
 
-  function pctClass(pct) {
-    if (pct == null) return 'nodata';
-    return pct >= 75 ? 'ok' : pct >= 45 ? 'warn' : 'error';
-  }
-
-  function healthColor(score) {
-    if (score == null) return 'var(--muted)';
-    return score >= 75 ? 'var(--green)' : score >= 45 ? 'var(--yellow)' : 'var(--red)';
-  }
-
-  function removalRisk(s) {
-    if (s.no_data) return null;
-    if (s.health_score != null && s.health_score < 40) return 'high';
-    if (s.health_score != null && s.health_score < 60) return 'medium';
-    return null;
-  }
-
+  // ── helpers ───────────────────────────────────────────────────────────────
+  function pctClass(p) { return p==null?'nodata':p>=75?'ok':p>=45?'warn':'error'; }
+  function healthColor(s) { return s==null?'var(--muted)':s>=75?'var(--green)':s>=45?'var(--yellow)':'var(--red)'; }
   function relTime(ts) {
     if (!ts) return '—';
-    const diff = Math.floor(Date.now() / 1000 - ts);
-    if (diff < 60) return `${diff}s ago`;
-    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-    return `${Math.floor(diff / 3600)}h ago`;
+    const d = Math.floor(Date.now()/1000 - ts);
+    return d<60?`${d}s ago`:d<3600?`${Math.floor(d/60)}m ago`:`${Math.floor(d/3600)}h ago`;
   }
-
-  function fmtTime(ts) {
-    return new Date(ts * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  function fmtTime(ts) { return new Date(ts*1000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); }
+  function seedRowId(s) { return 'seed-'+s.replace(/[^a-z0-9]/gi,'-'); }
+  function deltaHtml(v) {
+    if (v==null||v===0) return '<span class="delta flat">±0</span>';
+    return v>0?`<span class="delta up">+${v}</span>`:`<span class="delta down">${v}</span>`;
   }
+  function shortUA(ua) { return (ua||'').replace(/^\/|\/$/g,'').replace('Satoshi:','Core ').split('/')[0]; }
 
-  function seedRowId(seed) {
-    return 'seed-' + seed.replace(/[^a-z0-9]/gi, '-');
-  }
-
-  // ── global charts ────────────────────────────────────────────────────────
-
+  // ── global charts ─────────────────────────────────────────────────────────
   function updateHistoryChart(data) {
-    const labels = data.map(d => fmtTime(d.timestamp));
-    const values = data.map(d => d.pct);
+    const labels = data.map(d=>fmtTime(d.timestamp)), vals = data.map(d=>d.pct);
     if (!historyChart) {
-      const ctx = document.getElementById('history-chart').getContext('2d');
-      historyChart = new Chart(ctx, {
-        type: 'line',
-        data: { labels, datasets: [{ label: 'Reachable %', data: values, borderColor: '#3fb950', backgroundColor: 'rgba(63,185,80,0.08)', fill: true, tension: 0.3, pointRadius: 2, borderWidth: 2 }] },
-        options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { color: '#21262d' }, ticks: { maxTicksLimit: 8 } }, y: { grid: { color: '#21262d' }, min: 0, max: 100, ticks: { callback: v => v + '%' } } }, plugins: { legend: { display: false } } }
+      historyChart = new Chart(document.getElementById('history-chart').getContext('2d'), {
+        type:'line', data:{labels,datasets:[{label:'Reachable %',data:vals,borderColor:'#3fb950',backgroundColor:'rgba(63,185,80,0.08)',fill:true,tension:.3,pointRadius:2,borderWidth:2}]},
+        options:{responsive:true,maintainAspectRatio:false,scales:{x:{grid:{color:'#21262d'},ticks:{maxTicksLimit:8}},y:{grid:{color:'#21262d'},min:0,max:100,ticks:{callback:v=>v+'%'}}},plugins:{legend:{display:false}}}
       });
-    } else {
-      historyChart.data.labels = labels;
-      historyChart.data.datasets[0].data = values;
-      historyChart.update('none');
-    }
+    } else { historyChart.data.labels=labels; historyChart.data.datasets[0].data=vals; historyChart.update('none'); }
   }
 
   function updateUaChart(data) {
-    const COLORS = ['#f7931a','#3fb950','#58a6ff','#f85149','#d29922','#bc8cff','#f0883e','#39d353','#79c0ff','#ff7b72','#ffa657','#56d364','#a5d6ff','#ffa198','#ffd700'];
-    const labels = data.map(d => d.user_agent.replace(/^\/|\/$/g, '').replace('Satoshi:', 'Core '));
-    const values = data.map(d => d.count);
+    const labels = data.map(d=>shortUA(d.user_agent)), vals = data.map(d=>d.count);
     if (!uaChart) {
-      const ctx = document.getElementById('ua-chart').getContext('2d');
-      uaChart = new Chart(ctx, {
-        type: 'doughnut',
-        data: { labels, datasets: [{ data: values, backgroundColor: COLORS.slice(0, data.length), borderWidth: 0 }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { font: { size: 10 }, boxWidth: 10, padding: 6 } } }, cutout: '60%' }
+      uaChart = new Chart(document.getElementById('ua-chart').getContext('2d'), {
+        type:'doughnut', data:{labels,datasets:[{data:vals,backgroundColor:UA_COLORS.slice(0,data.length),borderWidth:0}]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:10},boxWidth:10,padding:6}}},cutout:'60%'}
       });
-    } else {
-      uaChart.data.labels = labels;
-      uaChart.data.datasets[0].data = values;
-      uaChart.update('none');
-    }
+    } else { uaChart.data.labels=labels; uaChart.data.datasets[0].data=vals; uaChart.update('none'); }
   }
 
-  // ── stat cards ───────────────────────────────────────────────────────────
-
-  function renderStats(summary, seeds) {
-    const total = summary.total_nodes, reach = summary.reachable;
-    document.getElementById('s-reachable').textContent = reach;
-    document.getElementById('s-reachable-pct').textContent = total ? `${(reach / total * 100).toFixed(1)}% of probed` : '';
-    document.getElementById('s-unreachable').textContent = summary.unreachable;
-    document.getElementById('s-total').textContent = total;
-    const okSeeds = seeds.filter(s => !s.no_data && s.ok_polls > 0).length;
-    const totalSeeds = seeds.length;
-    document.getElementById('s-seeds-ok').textContent = `${okSeeds} / ${totalSeeds}`;
-    document.getElementById('s-seeds-total').textContent = `seeds responding`;
+  function updateNettypeChart(data) {
+    const labels = Object.keys(data), vals = Object.values(data);
+    const bgColors = labels.map(l=>NT_COLORS[l]||'#8b949e');
+    if (!nettypeChart) {
+      nettypeChart = new Chart(document.getElementById('nettype-chart').getContext('2d'), {
+        type:'doughnut', data:{labels,datasets:[{data:vals,backgroundColor:bgColors,borderWidth:0}]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:10},boxWidth:10,padding:6}}},cutout:'55%'}
+      });
+    } else { nettypeChart.data.labels=labels; nettypeChart.data.datasets[0].data=vals; nettypeChart.data.datasets[0].backgroundColor=bgColors; nettypeChart.update('none'); }
   }
 
-  // ── seeds table ──────────────────────────────────────────────────────────
+  function updateServicesPanel(data) {
+    if (!data.length) return;
+    const max = data[0].pct;
+    document.getElementById('services-bars').innerHTML = data.map(s=>`
+      <div class="service-row">
+        <span class="service-name">${s.service}</span>
+        <div class="service-track"><div class="service-fill" style="width:${s.pct}%"></div></div>
+        <span class="service-pct">${s.pct}%</span>
+      </div>`).join('');
+  }
 
-  function renderSeeds(seeds) {
+  function updateVersionHistory(data) {
+    if (!data.labels||!data.labels.length) return;
+    const labels = data.labels.map(fmtTime);
+    const datasets = data.series.map((s,i)=>({
+      label: shortUA(s.ua), data: s.data,
+      borderColor: UA_COLORS[i%UA_COLORS.length],
+      backgroundColor: UA_COLORS[i%UA_COLORS.length]+'22',
+      fill: true, tension: .3, pointRadius: 0, borderWidth: 1.5,
+    }));
+    if (!versionHistChart) {
+      versionHistChart = new Chart(document.getElementById('version-history-chart').getContext('2d'), {
+        type:'line', data:{labels,datasets},
+        options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+          scales:{x:{grid:{color:'#21262d'},ticks:{maxTicksLimit:6,font:{size:9}}},y:{grid:{color:'#21262d'},ticks:{font:{size:9}}}},
+          plugins:{legend:{labels:{font:{size:9},boxWidth:8,padding:4}}}}
+      });
+    } else { versionHistChart.data.labels=labels; versionHistChart.data.datasets=datasets; versionHistChart.update('none'); }
+  }
+
+  // ── stat cards ────────────────────────────────────────────────────────────
+  function renderStats(summary, seeds, longtermCount, deltas) {
+    const {total_nodes:total,reachable,unreachable} = summary;
+    document.getElementById('s-reachable').textContent = reachable;
+    document.getElementById('s-reachable-pct').textContent = total?`${(reachable/total*100).toFixed(1)}% of probed`:'';
+    document.getElementById('s-unreachable').textContent = unreachable;
+    document.getElementById('s-total').innerHTML = total + (deltas?.delta_7d?.total != null ? ' '+deltaHtml(deltas.delta_7d.total) : '');
+    document.getElementById('s-longterm').textContent = longtermCount;
+    const okSeeds = seeds.filter(s=>!s.no_data&&s.ok_polls>0).length;
+    document.getElementById('s-seeds-ok').textContent = `${okSeeds} / ${seeds.length}`;
+    document.getElementById('s-seeds-total').textContent = 'seeds responding';
+  }
+
+  // ── long-term nodes table ─────────────────────────────────────────────────
+  function renderLongtermNodes(nodes) {
+    const el = document.getElementById('lt-nodes-content');
+    if (!nodes.length) { el.innerHTML='<p class="empty-msg">No long-term nodes yet — needs multiple probe cycles.</p>'; return; }
+    el.innerHTML = `<table class="lt-table">
+      <thead><tr><th>IP</th><th>Type</th><th>Uptime</th><th>Probes</th><th>First seen</th><th>User Agent</th></tr></thead>
+      <tbody>${nodes.slice(0,50).map(n=>`<tr>
+        <td style="font-family:monospace">${n.ip}</td>
+        <td><span class="nt-${n.network_type||'ipv4'}">${n.network_type||'ipv4'}</span></td>
+        <td style="color:var(--green)">${n.uptime_pct}%</td>
+        <td style="color:var(--muted)">${n.reachable_probes}/${n.total_probes}</td>
+        <td style="color:var(--muted)">${relTime(n.first_seen)}</td>
+        <td>${n.user_agent?shortUA(n.user_agent):'—'}</td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+  }
+
+  // ── seeds table ───────────────────────────────────────────────────────────
+  function renderSeeds(seeds, uniqueness) {
+    const uniqMap = Object.fromEntries((uniqueness||[]).map(u=>[u.seed, u.uniqueness_pct]));
     const tbody = document.getElementById('seeds-tbody');
-    const currentExpanded = new Set(
-      [...tbody.querySelectorAll('tr.seed-row.expanded')].map(r => r.dataset.seed)
-    );
+    const expanded = new Set([...tbody.querySelectorAll('tr.seed-row.expanded')].map(r=>r.dataset.seed));
 
-    tbody.innerHTML = seeds.map(s => {
+    tbody.innerHTML = seeds.map(s=>{
       const id = seedRowId(s.seed);
       const cls = pctClass(s.reachable_pct);
-      const pct = s.reachable_pct ?? 0;
-      const risk = removalRisk(s);
-
-      const errorPolls = s.total_polls - s.ok_polls;
-      let statusBadge;
-      if (s.no_data) {
-        statusBadge = `<span class="badge nodata">No data</span>`;
-      } else if (s.ok_polls === 0) {
-        statusBadge = `<span class="badge error">Down</span>`;
-      } else if (errorPolls > 0) {
-        statusBadge = `<span class="badge warn">Degraded</span>`;
-      } else {
-        statusBadge = `<span class="badge ok">OK</span>`;
-      }
-
-      const healthHtml = s.health_score != null
-        ? `<span class="health-ring" style="color:${healthColor(s.health_score)}">${s.health_score}%
-            ${risk === 'high' ? '<span class="badge danger" title="Consistently failing — consider removal">⚠ Remove?</span>' : ''}</span>`
-        : `<span style="color:var(--muted)">—</span>`;
-
-      const isExpanded = currentExpanded.has(s.seed);
-
+      const pct = s.reachable_pct??0;
+      const errPolls = s.total_polls - s.ok_polls;
+      const risk = !s.no_data&&s.health_score!=null&&s.health_score<40;
+      const statusBadge = s.no_data?`<span class="badge nodata">No data</span>`
+        :s.ok_polls===0?`<span class="badge error">Down</span>`
+        :errPolls>0?`<span class="badge warn">Degraded</span>`
+        :`<span class="badge ok">OK</span>`;
+      const healthHtml = s.health_score!=null
+        ?`<span class="health-ring" style="color:${healthColor(s.health_score)}">${s.health_score}%${risk?'<span class="badge danger" style="margin-left:.3rem">⚠ Remove?</span>':''}</span>`
+        :`<span style="color:var(--muted)">—</span>`;
+      const uniq = uniqMap[s.seed];
+      const isExp = expanded.has(s.seed);
       return `
-        <tr class="seed-row${isExpanded ? ' expanded' : ''}" data-seed="${s.seed}" id="${id}" onclick="toggleSeed('${s.seed}')">
+        <tr class="seed-row${isExp?' expanded':''}" data-seed="${s.seed}" id="${id}" onclick="toggleSeed('${s.seed}')">
           <td><span class="chevron">▶</span></td>
           <td><code style="font-size:.82rem">${s.seed}</code></td>
           <td><span class="badge net">${s.network}</span></td>
           <td>${statusBadge}</td>
           <td>${healthHtml}</td>
-          <td>${s.max_records ?? '—'}</td>
-          <td>
-            <div class="pct-bar">
-              <div class="pct-bar-track"><div class="pct-bar-fill ${cls}" style="width:${pct}%"></div></div>
-              <span style="font-size:.8rem;min-width:3.5rem;text-align:right">${s.reachable_pct != null ? s.reachable_pct + '%' : '—'}</span>
-            </div>
-          </td>
-          <td>${s.avg_response_ms ?? '—'}</td>
+          <td>${s.max_records??'—'}</td>
+          <td><div class="pct-bar"><div class="pct-bar-track"><div class="pct-bar-fill ${cls}" style="width:${pct}%"></div></div><span style="font-size:.8rem;min-width:3.5rem;text-align:right">${s.reachable_pct!=null?s.reachable_pct+'%':'—'}</span></div></td>
+          <td>${uniq!=null?uniq+'%':'—'}</td>
+          <td>${s.avg_response_ms??'—'}</td>
           <td>${relTime(s.last_poll)}</td>
         </tr>
-        <tr class="detail-row${isExpanded ? '' : ' hidden'}" id="${id}-detail">
-          <td colspan="9">
+        <tr class="detail-row${isExp?'':' hidden'}" id="${id}-detail">
+          <td colspan="10">
             <div class="detail-panel">
               <div class="tab-bar">
                 <button class="tab-btn active" onclick="switchTab('${s.seed}','overview',this)">Overview</button>
                 <button class="tab-btn" onclick="switchTab('${s.seed}','nodes',this)">Nodes</button>
+                <button class="tab-btn" onclick="switchTab('${s.seed}','stale',this)">Stale</button>
                 <button class="tab-btn" onclick="switchTab('${s.seed}','polls',this)">DNS Polls</button>
               </div>
               <div class="tab-content">
-                <div class="tab-pane active" id="${id}-tab-overview">
-                  <div class="detail-chart-wrap"><canvas id="${id}-canvas"></canvas></div>
-                </div>
-                <div class="tab-pane" id="${id}-tab-nodes">
-                  <div id="${id}-nodes-content"><p class="empty-msg">Loading…</p></div>
-                </div>
-                <div class="tab-pane" id="${id}-tab-polls">
-                  <div id="${id}-polls-content"><p class="empty-msg">Loading…</p></div>
-                </div>
+                <div class="tab-pane active" id="${id}-tab-overview"><div class="detail-chart-wrap"><canvas id="${id}-canvas"></canvas></div></div>
+                <div class="tab-pane" id="${id}-tab-nodes"><div id="${id}-nodes-content"><p class="empty-msg">Loading…</p></div></div>
+                <div class="tab-pane" id="${id}-tab-stale"><div id="${id}-stale-content"><p class="empty-msg">Loading…</p></div></div>
+                <div class="tab-pane" id="${id}-tab-polls"><div id="${id}-polls-content"><p class="empty-msg">Loading…</p></div></div>
               </div>
             </div>
           </td>
         </tr>`;
     }).join('');
-
-    // Re-render charts for any rows that were previously expanded
-    currentExpanded.forEach(seed => renderDetailChart(seed));
+    expanded.forEach(seed=>loadTab(seed,'overview'));
   }
 
-  // ── per-seed detail panel ────────────────────────────────────────────────
-
-  const loadedTabs = {};   // seed -> Set of loaded tab names
-
+  // ── seed detail tabs ──────────────────────────────────────────────────────
   async function toggleSeed(seed) {
-    const id = seedRowId(seed);
-    const row = document.getElementById(id);
-    const detail = document.getElementById(id + '-detail');
-    const isExpanded = row.classList.contains('expanded');
-
-    row.classList.toggle('expanded', !isExpanded);
-    detail.classList.toggle('hidden', isExpanded);
-
-    if (!isExpanded) {
-      await loadTab(seed, 'overview');
-    }
+    const id=seedRowId(seed), row=document.getElementById(id), detail=document.getElementById(id+'-detail');
+    const isExp=row.classList.contains('expanded');
+    row.classList.toggle('expanded',!isExp); detail.classList.toggle('hidden',isExp);
+    if (!isExp) await loadTab(seed,'overview');
   }
 
-  function switchTab(seed, tabName, btn) {
-    const id = seedRowId(seed);
-    // Update button states
-    btn.closest('.tab-bar').querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    // Show correct pane
-    btn.closest('.detail-panel').querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-    document.getElementById(`${id}-tab-${tabName}`).classList.add('active');
-    // Load data if needed
-    loadTab(seed, tabName);
+  function switchTab(seed,tab,btn) {
+    const id=seedRowId(seed);
+    btn.closest('.tab-bar').querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active');
+    btn.closest('.detail-panel').querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+    document.getElementById(`${id}-tab-${tab}`).classList.add('active');
+    loadTab(seed,tab);
   }
 
-  async function loadTab(seed, tabName) {
-    const key = `${seed}:${tabName}`;
-    if (loadedTabs[key]) return;
-    loadedTabs[key] = true;
-
-    if (tabName === 'overview') await renderOverviewChart(seed);
-    if (tabName === 'nodes')    await renderNodesTab(seed);
-    if (tabName === 'polls')    await renderPollsTab(seed);
+  async function loadTab(seed,tab) {
+    const key=`${seed}:${tab}`;
+    if (loadedTabs[key]) return; loadedTabs[key]=true;
+    if (tab==='overview') await renderOverviewChart(seed);
+    if (tab==='nodes')    await renderNodesTab(seed);
+    if (tab==='stale')    await renderStaleTab(seed);
+    if (tab==='polls')    await renderPollsTab(seed);
   }
 
   async function renderOverviewChart(seed) {
-    const id = seedRowId(seed);
-    const canvas = document.getElementById(id + '-canvas');
+    const id=seedRowId(seed), canvas=document.getElementById(id+'-canvas');
     if (!canvas) return;
-
     if (detailCharts[seed]) { detailCharts[seed].destroy(); delete detailCharts[seed]; }
-
-    let data;
-    try { data = await fetch(`/api/seeds/${encodeURIComponent(seed)}/history`).then(r => r.json()); }
-    catch { return; }
-
-    if (!data.length) {
-      canvas.parentElement.innerHTML = '<p class="empty-msg">No history yet — run a probe cycle first.</p>';
-      return;
-    }
-
-    detailCharts[seed] = new Chart(canvas.getContext('2d'), {
-      type: 'line',
-      data: {
-        labels: data.map(d => fmtTime(d.timestamp)),
-        datasets: [
-          { label: 'Reachable %', data: data.map(d => d.reachable_pct), borderColor: '#3fb950', backgroundColor: 'rgba(63,185,80,0.08)', fill: true, tension: 0.3, pointRadius: 1, borderWidth: 1.5, yAxisID: 'y' },
-          { label: 'DNS records', data: data.map(d => d.records), borderColor: '#58a6ff', backgroundColor: 'transparent', tension: 0.3, pointRadius: 1, borderWidth: 1.5, yAxisID: 'y2' },
-        ]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        interaction: { mode: 'index', intersect: false },
-        scales: {
-          x: { grid: { color: '#21262d' }, ticks: { maxTicksLimit: 8, font: { size: 10 } } },
-          y: { grid: { color: '#21262d' }, min: 0, max: 100, position: 'left', ticks: { callback: v => v + '%', font: { size: 10 } } },
-          y2: { grid: { display: false }, position: 'right', ticks: { font: { size: 10 } }, title: { display: true, text: 'records', font: { size: 9 }, color: '#8b949e' } },
-        },
-        plugins: { legend: { labels: { font: { size: 10 }, boxWidth: 10 } } },
-      }
+    let data; try { data=await fetch(`/api/seeds/${encodeURIComponent(seed)}/history`).then(r=>r.json()); } catch { return; }
+    if (!data.length) { canvas.parentElement.innerHTML='<p class="empty-msg">No history yet — run a probe cycle first.</p>'; return; }
+    detailCharts[seed]=new Chart(canvas.getContext('2d'),{
+      type:'line', data:{labels:data.map(d=>fmtTime(d.timestamp)),datasets:[
+        {label:'Reachable %',data:data.map(d=>d.reachable_pct),borderColor:'#3fb950',backgroundColor:'rgba(63,185,80,.08)',fill:true,tension:.3,pointRadius:1,borderWidth:1.5,yAxisID:'y'},
+        {label:'DNS records',data:data.map(d=>d.records),borderColor:'#58a6ff',backgroundColor:'transparent',tension:.3,pointRadius:1,borderWidth:1.5,yAxisID:'y2'},
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+        scales:{x:{grid:{color:'#21262d'},ticks:{maxTicksLimit:8,font:{size:10}}},y:{grid:{color:'#21262d'},min:0,max:100,position:'left',ticks:{callback:v=>v+'%',font:{size:10}}},y2:{grid:{display:false},position:'right',ticks:{font:{size:10}},title:{display:true,text:'records',font:{size:9},color:'#8b949e'}}},
+        plugins:{legend:{labels:{font:{size:10},boxWidth:10}}}}
     });
   }
 
   async function renderNodesTab(seed) {
-    const id = seedRowId(seed);
-    const el = document.getElementById(id + '-nodes-content');
+    const id=seedRowId(seed), el=document.getElementById(id+'-nodes-content');
+    let nodes; try { nodes=await fetch(`/api/seeds/${encodeURIComponent(seed)}/nodes`).then(r=>r.json()); } catch { el.innerHTML='<p class="empty-msg">Failed to load.</p>'; return; }
+    if (!nodes.length) { el.innerHTML='<p class="empty-msg">No node data yet.</p>'; return; }
+    const clrMap={ok:'var(--green)',warn:'var(--yellow)',error:'var(--red)',nodata:'var(--muted)'};
+    el.innerHTML=`<table class="nodes-table"><thead><tr><th>IP</th><th>Type</th><th>Probed</th><th>Reachable</th><th>Last seen</th><th>User Agent</th><th>Height</th><th>Avg ms</th></tr></thead><tbody>
+      ${nodes.map(n=>`<tr>
+        <td>${n.ip}</td>
+        <td><span class="nt-${n.network_type||'ipv4'}">${n.network_type||'ipv4'}</span></td>
+        <td style="color:var(--muted)">${n.times_probed}×</td>
+        <td style="color:${clrMap[pctClass(n.reachable_pct)]}">${n.reachable_pct}%</td>
+        <td style="color:var(--muted)">${relTime(n.last_probed)}</td>
+        <td>${n.user_agent?shortUA(n.user_agent):'<span style="color:var(--muted)">—</span>'}</td>
+        <td style="color:var(--muted)">${n.start_height??'—'}</td>
+        <td style="color:var(--muted)">${n.avg_connect_ms??'—'}</td>
+      </tr>`).join('')}
+    </tbody></table>`;
+  }
 
-    let nodes;
-    try { nodes = await fetch(`/api/seeds/${encodeURIComponent(seed)}/nodes`).then(r => r.json()); }
-    catch { el.innerHTML = '<p class="empty-msg">Failed to load node data.</p>'; return; }
-
-    if (!nodes.length) {
-      el.innerHTML = '<p class="empty-msg">No node probe data yet — run a probe cycle first.</p>';
-      return;
-    }
-
-    el.innerHTML = `
-      <table class="nodes-table">
-        <thead><tr>
-          <th>IP</th><th>Probed</th><th>Reachable</th><th>Last seen</th>
-          <th>User Agent</th><th>Height</th><th>Avg ms</th>
-        </tr></thead>
-        <tbody>
-          ${nodes.map(n => {
-            const cls = pctClass(n.reachable_pct);
-            const clrMap = { ok: 'var(--green)', warn: 'var(--yellow)', error: 'var(--red)', nodata: 'var(--muted)' };
-            return `<tr>
-              <td>${n.ip}</td>
-              <td style="color:var(--muted)">${n.times_probed}×</td>
-              <td style="color:${clrMap[cls]}">${n.reachable_pct}%</td>
-              <td style="color:var(--muted)">${relTime(n.last_probed)}</td>
-              <td style="color:var(--text)">${n.user_agent ? n.user_agent.replace(/^\/|\/$/g,'') : '<span style="color:var(--muted)">—</span>'}</td>
-              <td style="color:var(--muted)">${n.start_height ?? '—'}</td>
-              <td style="color:var(--muted)">${n.avg_connect_ms ?? '—'}</td>
-            </tr>`;
-          }).join('')}
-        </tbody>
-      </table>`;
+  async function renderStaleTab(seed) {
+    const id=seedRowId(seed), el=document.getElementById(id+'-stale-content');
+    let data; try { data=await fetch(`/api/seeds/${encodeURIComponent(seed)}/stale`).then(r=>r.json()); } catch { el.innerHTML='<p class="empty-msg">Failed to load.</p>'; return; }
+    if (!data.length) { el.innerHTML='<p class="empty-msg">No stale nodes detected in the last 7 days.</p>'; return; }
+    el.innerHTML=`<p style="font-size:.8rem;color:var(--muted);margin-bottom:.75rem">IPs returned by this seed that were never reachable in the last 7 days — potential stale entries in the seed's crawler.</p>
+      <table class="stale-table"><thead><tr><th>IP</th><th>Times returned by DNS</th><th>Last returned</th></tr></thead><tbody>
+      ${data.map(n=>`<tr>
+        <td style="font-family:monospace">${n.ip}</td>
+        <td style="color:var(--red)">${n.times_returned}×</td>
+        <td style="color:var(--muted)">${relTime(n.last_returned)}</td>
+      </tr>`).join('')}
+    </tbody></table>`;
   }
 
   async function renderPollsTab(seed) {
-    const id = seedRowId(seed);
-    const el = document.getElementById(id + '-polls-content');
-
-    let polls;
-    try { polls = await fetch(`/api/seeds/${encodeURIComponent(seed)}/polls`).then(r => r.json()); }
-    catch { el.innerHTML = '<p class="empty-msg">Failed to load poll data.</p>'; return; }
-
-    if (!polls.length) {
-      el.innerHTML = '<p class="empty-msg">No DNS poll data yet — run a probe cycle first.</p>';
-      return;
-    }
-
-    el.innerHTML = `
-      <table class="poll-table">
-        <thead><tr>
-          <th>Time</th><th>DNS ms</th><th>Records</th><th>Status</th><th>IPs returned</th>
-        </tr></thead>
-        <tbody>
-          ${polls.map(p => `<tr>
-            <td style="white-space:nowrap;color:var(--muted)">${new Date(p.queried_at * 1000).toLocaleString()}</td>
-            <td>${p.response_ms ?? '—'}</td>
-            <td>${p.record_count}</td>
-            <td>${p.error
-              ? `<span class="badge error" title="${p.error}">Error</span>`
-              : `<span class="badge ok">OK</span>`}</td>
-            <td><div class="ip-list">${p.ips.join(' &nbsp; ') || '—'}</div></td>
-          </tr>`).join('')}
-        </tbody>
-      </table>`;
+    const id=seedRowId(seed), el=document.getElementById(id+'-polls-content');
+    let polls; try { polls=await fetch(`/api/seeds/${encodeURIComponent(seed)}/polls`).then(r=>r.json()); } catch { el.innerHTML='<p class="empty-msg">Failed to load.</p>'; return; }
+    if (!polls.length) { el.innerHTML='<p class="empty-msg">No DNS poll data yet.</p>'; return; }
+    el.innerHTML=`<table class="poll-table"><thead><tr><th>Time</th><th>DNS ms</th><th>Records</th><th>Status</th><th>IPs returned</th></tr></thead><tbody>
+      ${polls.map(p=>`<tr>
+        <td style="white-space:nowrap;color:var(--muted)">${new Date(p.queried_at*1000).toLocaleString()}</td>
+        <td>${p.response_ms??'—'}</td><td>${p.record_count}</td>
+        <td>${p.error?`<span class="badge error" title="${p.error}">Error</span>`:`<span class="badge ok">OK</span>`}</td>
+        <td><div class="ip-list">${p.ips.join(' &nbsp; ')||'—'}</div></td>
+      </tr>`).join('')}
+    </tbody></table>`;
   }
 
-  // ── data fetch loop ───────────────────────────────────────────────────────
+  // ── probe button ──────────────────────────────────────────────────────────
+  let probePoller=null;
+  async function runProbe() {
+    try {
+      const res=await fetch('/api/probe',{method:'POST'});
+      if (res.status!==409&&!res.ok) { alert('Could not start: '+(await res.json()).detail); return; }
+    } catch(e) { alert('Error: '+e.message); return; }
+    setProbeRunning(true); pollProbeStatus();
+  }
+  function setProbeRunning(running) {
+    const btn=document.getElementById('probe-btn'), label=btn.querySelector('.btn-label');
+    btn.disabled=running; btn.classList.toggle('running',running);
+    label.textContent=running?'Probing…':'Run probe';
+  }
+  async function pollProbeStatus() {
+    if (probePoller) clearInterval(probePoller);
+    probePoller=setInterval(async()=>{
+      try {
+        const s=await fetch('/api/probe/status').then(r=>r.json());
+        if (!s.running) {
+          clearInterval(probePoller); probePoller=null; setProbeRunning(false);
+          if (s.error) alert('Probe error: '+s.error); else await fetchAll();
+        }
+      } catch {}
+    },2000);
+  }
+  fetch('/api/probe/status').then(r=>r.json()).then(s=>{ if(s.running){setProbeRunning(true);pollProbeStatus();} });
 
+  // ── main fetch loop ───────────────────────────────────────────────────────
   async function fetchAll() {
-    const [summary, history, seeds, uas] = await Promise.all([
-      fetch('/api/summary').then(r => r.json()),
-      fetch('/api/history').then(r => r.json()),
-      fetch('/api/seeds').then(r => r.json()),
-      fetch('/api/user-agents').then(r => r.json()),
+    const [summary, history, seeds, uas, nettypes, services, longterm, verHist, deltas, uniqueness] = await Promise.all([
+      fetch('/api/summary').then(r=>r.json()),
+      fetch('/api/history').then(r=>r.json()),
+      fetch('/api/seeds').then(r=>r.json()),
+      fetch('/api/user-agents').then(r=>r.json()),
+      fetch('/api/network-types').then(r=>r.json()),
+      fetch('/api/services').then(r=>r.json()),
+      fetch('/api/long-term-nodes').then(r=>r.json()),
+      fetch('/api/version-history').then(r=>r.json()),
+      fetch('/api/deltas').then(r=>r.json()),
+      fetch('/api/uniqueness').then(r=>r.json()),
     ]);
 
-    renderStats(summary, seeds);
+    renderStats(summary, seeds, longterm.length, deltas);
     updateHistoryChart(history);
     updateUaChart(uas);
-    renderSeeds(seeds);
+    updateNettypeChart(nettypes);
+    updateServicesPanel(services);
+    updateVersionHistory(verHist);
+    renderLongtermNodes(longterm);
+    renderSeeds(seeds, uniqueness);
 
-    document.getElementById('last-updated').textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
+    document.getElementById('last-updated').textContent=`Last updated: ${new Date().toLocaleTimeString()}`;
   }
 
   fetchAll();
   setInterval(fetchAll, 60_000);
-
-  // ── probe button ──────────────────────────────────────────────────────────
-
-  let probePoller = null;
-
-  async function runProbe() {
-    const btn = document.getElementById('probe-btn');
-    try {
-      const res = await fetch('/api/probe', { method: 'POST' });
-      if (res.status === 409) {
-        // Already running — just start tracking it
-      } else if (!res.ok) {
-        const err = await res.json();
-        alert('Could not start probe: ' + (err.detail || res.status));
-        return;
-      }
-    } catch (e) {
-      alert('Error: ' + e.message);
-      return;
-    }
-    setProbeRunning(true);
-    pollProbeStatus();
-  }
-
-  function setProbeRunning(running) {
-    const btn = document.getElementById('probe-btn');
-    const label = btn.querySelector('.btn-label');
-    btn.disabled = running;
-    btn.classList.toggle('running', running);
-    label.textContent = running ? 'Probing…' : 'Run probe';
-  }
-
-  async function pollProbeStatus() {
-    if (probePoller) clearInterval(probePoller);
-    probePoller = setInterval(async () => {
-      try {
-        const status = await fetch('/api/probe/status').then(r => r.json());
-        if (!status.running) {
-          clearInterval(probePoller);
-          probePoller = null;
-          setProbeRunning(false);
-          if (status.error) {
-            alert('Probe error: ' + status.error);
-          } else {
-            await fetchAll();   // refresh all panels with fresh data
-          }
-        }
-      } catch { /* ignore transient network errors */ }
-    }, 2000);
-  }
-
-  // On load, check if a probe is already running (e.g. page reload mid-probe)
-  fetch('/api/probe/status').then(r => r.json()).then(s => {
-    if (s.running) { setProbeRunning(true); pollProbeStatus(); }
-  });
 </script>
 </body>
 </html>

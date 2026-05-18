@@ -7,6 +7,7 @@ dependencies = [
     "dnspython>=2.6",
     "fastapi>=0.115",
     "uvicorn[standard]>=0.30",
+    "geoip2>=4.8",
 ]
 
 [project.scripts]
