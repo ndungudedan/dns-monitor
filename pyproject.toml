@@ -1,0 +1,17 @@
+[project]
+name = "dns-monitor"
+version = "0.1.0"
+description = "Bitcoin DNS seed monitor"
+requires-python = ">=3.12"
+dependencies = [
+    "dnspython>=2.6",
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+]
+
+[project.scripts]
+dns-monitor = "main:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

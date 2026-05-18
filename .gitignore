@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+dist/
+
+# uv
+uv.lock
+
+# Runtime data
+*.db
+*.db-wal
+*.db-shm
+*.log
+
+# Editor
+.vscode/
+.idea/
+*.swp

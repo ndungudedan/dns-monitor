@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bitcoin DNS Seed Monitor</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --green: #3fb950;
+      --red: #f85149;
+      --yellow: #d29922;
+      --orange: #f0883e;
+      --blue: #58a6ff;
+      --accent: #f7931a;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    header svg { color: var(--accent); }
+    header h1 { font-size: 1.1rem; font-weight: 600; }
+    header .refresh-info {
+      margin-left: auto;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    .dot {
+      display: inline-block;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      margin-right: 4px;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.3; }
+    }
+
+    main { padding: 1.5rem 2rem; max-width: 1400px; margin: 0 auto; }
+
+    /* Stat cards */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.25rem 1rem;
+    }
+    .stat-card .label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 0.4rem; }
+    .stat-card .value { font-size: 2rem; font-weight: 700; line-height: 1; }
+    .stat-card .value.green { color: var(--green); }
+    .stat-card .value.red   { color: var(--red); }
+    .stat-card .value.blue  { color: var(--blue); }
+    .stat-card .value.orange{ color: var(--orange); }
+    .stat-card .sub { font-size: 0.75rem; color: var(--muted); margin-top: 0.3rem; }
+
+    /* Charts row */
+    .charts-row {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    @media (max-width: 900px) { .charts-row { grid-template-columns: 1fr; } }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.25rem;
+    }
+    .card h2 {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      margin-bottom: 1rem;
+    }
+    .chart-wrap { position: relative; height: 220px; }
+
+    /* Seeds table */
+    .seeds-card { margin-bottom: 1.5rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th {
+      text-align: left;
+      font-size: 0.72rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      padding: 0 0.75rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+    td { padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--border); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,.02); }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 99px;
+      font-size: 0.7rem;
+      font-weight: 600;
+    }
+    .badge.ok    { background: rgba(63,185,80,.15); color: var(--green); }
+    .badge.warn  { background: rgba(210,153,34,.15); color: var(--yellow); }
+    .badge.error { background: rgba(248,81,73,.15);  color: var(--red); }
+    .badge.net   { background: rgba(88,166,255,.1);  color: var(--blue); font-size: 0.65rem; }
+
+    .pct-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .pct-bar-track {
+      flex: 1;
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .pct-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: var(--green);
+      transition: width 0.4s ease;
+    }
+    .pct-bar-fill.warn  { background: var(--yellow); }
+    .pct-bar-fill.error { background: var(--red); }
+
+    #last-updated { font-size: 0.72rem; color: var(--muted); margin-top: 1rem; text-align: right; }
+  </style>
+</head>
+<body>
+<header>
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M23.638 14.904c-1.602 6.43-8.113 10.34-14.542 8.736C2.67 22.05-1.244 15.525.362 9.105 1.962 2.67 8.475-1.243 14.9.358c6.43 1.605 10.342 8.115 8.738 14.548v-.002zm-6.35-4.613c.24-1.59-.974-2.45-2.64-3.03l.54-2.153-1.315-.33-.525 2.107c-.345-.087-.705-.167-1.064-.25l.526-2.127-1.32-.33-.54 2.165c-.285-.067-.565-.132-.84-.2l-1.815-.45-.35 1.407s.975.225.955.236c.535.136.63.486.615.766l-1.477 5.92c-.075.166-.24.406-.614.314.015.02-.96-.24-.96-.24l-.66 1.51 1.71.426.93.236-.54 2.19 1.32.327.54-2.165c.36.1.705.19 1.05.273l-.51 2.154 1.32.33.545-2.19c2.24.427 3.93.257 4.64-1.774.57-1.637-.03-2.58-1.217-3.196.854-.193 1.5-.76 1.68-1.928l.007-.013zm-3.01 4.22c-.404 1.64-3.157.75-4.05.53l.72-2.9c.896.23 3.757.67 3.33 2.37zm.41-4.24c-.37 1.49-2.662.735-3.405.55l.654-2.64c.744.18 3.137.524 2.75 2.084v.006z"/>
+  </svg>
+  <h1>Bitcoin DNS Seed Monitor</h1>
+  <span class="refresh-info"><span class="dot"></span>Live · refreshes every 60s</span>
+</header>
+
+<main>
+  <div class="stat-grid" id="stat-grid">
+    <div class="stat-card"><div class="label">Reachable</div><div class="value green" id="s-reachable">—</div><div class="sub" id="s-reachable-pct"></div></div>
+    <div class="stat-card"><div class="label">Unreachable</div><div class="value red" id="s-unreachable">—</div></div>
+    <div class="stat-card"><div class="label">Total Probed</div><div class="value blue" id="s-total">—</div><div class="sub">last hour</div></div>
+    <div class="stat-card"><div class="label">Seeds Up</div><div class="value orange" id="s-seeds-ok">—</div><div class="sub" id="s-seeds-total"></div></div>
+  </div>
+
+  <div class="charts-row">
+    <div class="card">
+      <h2>Reachability over time (24h)</h2>
+      <div class="chart-wrap"><canvas id="history-chart"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>Node versions</h2>
+      <div class="chart-wrap"><canvas id="ua-chart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card seeds-card">
+    <h2>Seed health</h2>
+    <table id="seeds-table">
+      <thead>
+        <tr>
+          <th>Seed</th>
+          <th>Network</th>
+          <th>Status</th>
+          <th>Records</th>
+          <th>Reachable</th>
+          <th>Avg DNS (ms)</th>
+          <th>Last poll</th>
+        </tr>
+      </thead>
+      <tbody id="seeds-tbody"></tbody>
+    </table>
+  </div>
+
+  <div id="last-updated"></div>
+</main>
+
+<script>
+  // Chart instances
+  let historyChart, uaChart;
+
+  const CHART_DEFAULTS = {
+    color: '#8b949e',
+    borderColor: '#30363d',
+  };
+  Chart.defaults.color = CHART_DEFAULTS.color;
+
+  function initHistoryChart(data) {
+    const ctx = document.getElementById('history-chart').getContext('2d');
+    historyChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: data.map(d => new Date(d.timestamp * 1000).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})),
+        datasets: [{
+          label: 'Reachable %',
+          data: data.map(d => d.pct),
+          borderColor: '#3fb950',
+          backgroundColor: 'rgba(63,185,80,0.08)',
+          fill: true,
+          tension: 0.3,
+          pointRadius: 2,
+          borderWidth: 2,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { grid: { color: '#21262d' }, ticks: { maxTicksLimit: 8 } },
+          y: { grid: { color: '#21262d' }, min: 0, max: 100,
+               ticks: { callback: v => v + '%' } },
+        },
+        plugins: { legend: { display: false } },
+      }
+    });
+  }
+
+  function initUaChart(data) {
+    const ctx = document.getElementById('ua-chart').getContext('2d');
+    const COLORS = ['#f7931a','#3fb950','#58a6ff','#f85149','#d29922',
+                    '#bc8cff','#f0883e','#39d353','#79c0ff','#ff7b72',
+                    '#ffa657','#56d364','#a5d6ff','#ffa198','#ffd700'];
+    uaChart = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: data.map(d => d.user_agent.replace(/^\/|\/$/g, '').replace('/Satoshi:', 'Core ')),
+        datasets: [{
+          data: data.map(d => d.count),
+          backgroundColor: COLORS.slice(0, data.length),
+          borderWidth: 0,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'right',
+            labels: { font: { size: 10 }, boxWidth: 10, padding: 6 },
+          },
+        },
+        cutout: '60%',
+      }
+    });
+  }
+
+  function updateHistoryChart(data) {
+    if (!historyChart) { initHistoryChart(data); return; }
+    historyChart.data.labels = data.map(d => new Date(d.timestamp * 1000).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}));
+    historyChart.data.datasets[0].data = data.map(d => d.pct);
+    historyChart.update('none');
+  }
+
+  function updateUaChart(data) {
+    if (!uaChart) { initUaChart(data); return; }
+    uaChart.data.labels = data.map(d => d.user_agent.replace(/^\/|\/$/g, '').replace('Satoshi:', 'Core '));
+    uaChart.data.datasets[0].data = data.map(d => d.count);
+    uaChart.update('none');
+  }
+
+  function pctClass(pct) {
+    if (pct === null || pct === undefined) return 'error';
+    if (pct >= 80) return 'ok';
+    if (pct >= 50) return 'warn';
+    return 'error';
+  }
+
+  function relTime(ts) {
+    if (!ts) return '—';
+    const diff = Math.floor((Date.now() / 1000) - ts);
+    if (diff < 60) return `${diff}s ago`;
+    if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+    return `${Math.floor(diff/3600)}h ago`;
+  }
+
+  function renderStats(summary) {
+    const total = summary.total_nodes;
+    const reach = summary.reachable;
+    const pct = total ? (reach / total * 100).toFixed(1) : 0;
+    document.getElementById('s-reachable').textContent = reach;
+    document.getElementById('s-reachable-pct').textContent = `${pct}% of probed`;
+    document.getElementById('s-unreachable').textContent = summary.unreachable;
+    document.getElementById('s-total').textContent = total;
+
+    const okSeeds = summary.seeds.filter(s => !s.error).length;
+    const totalSeeds = summary.seeds.length;
+    document.getElementById('s-seeds-ok').textContent = okSeeds;
+    document.getElementById('s-seeds-total').textContent = `of ${totalSeeds} seeds`;
+  }
+
+  function renderSeeds(seeds) {
+    const tbody = document.getElementById('seeds-tbody');
+    tbody.innerHTML = seeds.map(s => {
+      const cls = pctClass(s.reachable_pct);
+      const barClass = cls === 'ok' ? '' : cls;
+      const pct = s.reachable_pct ?? 0;
+      const status = s.error_polls === s.total_polls
+        ? `<span class="badge error">Down</span>`
+        : s.error_polls > 0
+          ? `<span class="badge warn">Degraded</span>`
+          : `<span class="badge ok">OK</span>`;
+      return `<tr>
+        <td><code style="font-size:.82rem">${s.seed}</code></td>
+        <td><span class="badge net">${s.network}</span></td>
+        <td>${status}</td>
+        <td>${s.max_records ?? '—'}</td>
+        <td>
+          <div class="pct-bar">
+            <div class="pct-bar-track"><div class="pct-bar-fill ${barClass}" style="width:${pct}%"></div></div>
+            <span style="font-size:.8rem;min-width:3.5rem;text-align:right">${s.reachable_pct !== null ? s.reachable_pct + '%' : '—'}</span>
+          </div>
+        </td>
+        <td>${s.avg_response_ms ?? '—'}</td>
+        <td>${relTime(s.last_poll)}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  async function fetchAll() {
+    const [summary, history, seeds, uas] = await Promise.all([
+      fetch('/api/summary').then(r => r.json()),
+      fetch('/api/history').then(r => r.json()),
+      fetch('/api/seeds').then(r => r.json()),
+      fetch('/api/user-agents').then(r => r.json()),
+    ]);
+
+    renderStats(summary);
+    updateHistoryChart(history);
+    updateUaChart(uas);
+    renderSeeds(seeds);
+
+    document.getElementById('last-updated').textContent =
+      `Last updated: ${new Date().toLocaleTimeString()}`;
+  }
+
+  fetchAll();
+  setInterval(fetchAll, 60_000);
+</script>
+</body>
+</html>
