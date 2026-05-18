@@ -31,7 +31,7 @@ Every probe cycle the monitor:
 ## Quick start
 
 ```bash
-git clone https://github.com/yourname/dns-monitor
+git clone https://github.com/ndungudedan/dns-monitor
 cd dns-monitor
 
 # Install dependencies
