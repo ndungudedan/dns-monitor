@@ -20,6 +20,7 @@ PROTOCOL_VERSION = 70015
 NETWORK_MAGIC = {
     "mainnet":  b"\xf9\xbe\xb4\xd9",
     "testnet3": b"\x0b\x11\x09\x07",
+    "testnet4": b"\x1c\x16\x3f\x28",
     "signet":   b"\x0a\x03\xcf\x40",
 }
 
